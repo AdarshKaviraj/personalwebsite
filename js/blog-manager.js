@@ -20,6 +20,23 @@ class BlogManager {
         this.updatePages();
     }
 
+    updatePost(updatedPost) {
+        const posts = this.loadPosts();
+        const index = posts.findIndex(p => p.id === updatedPost.id);
+        if (index !== -1) {
+            posts[index] = updatedPost;
+            this.savePosts(posts);
+            this.updatePages();
+        }
+    }
+
+    deletePost(postId) {
+        const posts = this.loadPosts();
+        const filteredPosts = posts.filter(p => p.id !== postId);
+        this.savePosts(filteredPosts);
+        this.updatePages();
+    }
+
     updatePages() {
         this.updateIndexPage();
         this.updateBlogPage();
