@@ -66,7 +66,53 @@
                         
                         <div class="form-group">
                             <label for="content">Post Content</label>
-                            <textarea id="content" name="content" required placeholder="Write your post content here..."></textarea>
+                            <div class="editor-toolbar">
+                                <button type="button" class="toolbar-btn" data-format="bold" title="Bold">
+                                    <strong>B</strong>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-format="italic" title="Italic">
+                                    <em>I</em>
+                                </button>
+                                <div class="toolbar-separator"></div>
+                                <button type="button" class="toolbar-btn" data-format="h2" title="Heading 2">
+                                    H2
+                                </button>
+                                <button type="button" class="toolbar-btn" data-format="h3" title="Heading 3">
+                                    H3
+                                </button>
+                                <div class="toolbar-separator"></div>
+                                <button type="button" class="toolbar-btn" data-format="quote" title="Quote">
+                                    "
+                                </button>
+                                <button type="button" class="toolbar-btn" data-format="code" title="Inline Code">
+                                    &lt;/&gt;
+                                </button>
+                                <button type="button" class="toolbar-btn" data-format="link" title="Link">
+                                    🔗
+                                </button>
+                            </div>
+                            <textarea id="content" name="content" required placeholder="Write your post content here...
+
+You can use these formatting options:
+**bold text** or *italic text*
+## Heading 2 or ### Heading 3
+> Quote text
+`inline code`
+[link text](url)"></textarea>
+                            <div class="editor-help">
+                                <details>
+                                    <summary>Formatting Guide</summary>
+                                    <div class="help-content">
+                                        <p><strong>**bold text**</strong> → <strong>bold text</strong></p>
+                                        <p><strong>*italic text*</strong> → <em>italic text</em></p>
+                                        <p><strong>## Heading 2</strong> → Large heading</p>
+                                        <p><strong>### Heading 3</strong> → Medium heading</p>
+                                        <p><strong>&gt; Quote text</strong> → Blockquote</p>
+                                        <p><strong>`code`</strong> → <code>inline code</code></p>
+                                        <p><strong>[link text](url)</strong> → clickable link</p>
+                                    </div>
+                                </details>
+                            </div>
                         </div>
                         
                         <div class="editor-actions">
@@ -103,6 +149,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             blogManager = new BlogManager();
             loadPostsList();
+            initializeEditor();
         });
 
         // Logout functionality
@@ -230,7 +277,7 @@
                 });
                 document.getElementById('preview-title').textContent = title;
                 document.getElementById('preview-excerpt').textContent = excerpt;
-                document.getElementById('preview-content').innerHTML = content.replace(/\n/g, '<br>');
+                document.getElementById('preview-content').innerHTML = markdownToHtml(content);
                 
                 previewSection.style.display = 'block';
                 previewSection.scrollIntoView({ behavior: 'smooth' });
@@ -291,6 +338,105 @@
             return title.toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '');
+        }
+
+        // Editor initialization and formatting functions
+        function initializeEditor() {
+            const toolbarButtons = document.querySelectorAll('.toolbar-btn');
+            const contentTextarea = document.getElementById('content');
+
+            toolbarButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const format = this.getAttribute('data-format');
+                    insertFormatting(contentTextarea, format);
+                });
+            });
+        }
+
+        function insertFormatting(textarea, format) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            const beforeText = textarea.value.substring(0, start);
+            const afterText = textarea.value.substring(end);
+
+            let formattedText = '';
+            let cursorOffset = 0;
+
+            switch (format) {
+                case 'bold':
+                    formattedText = `**${selectedText || 'bold text'}**`;
+                    cursorOffset = selectedText ? 0 : -11; // Position cursor inside
+                    break;
+                case 'italic':
+                    formattedText = `*${selectedText || 'italic text'}*`;
+                    cursorOffset = selectedText ? 0 : -12;
+                    break;
+                case 'h2':
+                    formattedText = `\n\n## ${selectedText || 'Heading 2'}\n\n`;
+                    cursorOffset = selectedText ? 0 : -12;
+                    break;
+                case 'h3':
+                    formattedText = `\n\n### ${selectedText || 'Heading 3'}\n\n`;
+                    cursorOffset = selectedText ? 0 : -13;
+                    break;
+                case 'quote':
+                    const lines = (selectedText || 'Quote text').split('\n');
+                    formattedText = '\n\n' + lines.map(line => `> ${line}`).join('\n') + '\n\n';
+                    cursorOffset = selectedText ? 0 : -12;
+                    break;
+                case 'code':
+                    formattedText = `\`${selectedText || 'code'}\``;
+                    cursorOffset = selectedText ? 0 : -6;
+                    break;
+                case 'link':
+                    const linkText = selectedText || 'link text';
+                    formattedText = `[${linkText}](url)`;
+                    cursorOffset = selectedText ? -5 : -14;
+                    break;
+            }
+
+            textarea.value = beforeText + formattedText + afterText;
+            
+            // Set cursor position
+            const newCursorPos = start + formattedText.length + cursorOffset;
+            textarea.focus();
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }
+
+        // Enhanced markdown to HTML conversion
+        function markdownToHtml(markdown) {
+            let html = markdown;
+
+            // Headers
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+
+            // Bold and italic
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // Code
+            html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+            // Links
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+            // Blockquotes
+            html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+            // Line breaks
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = '<p>' + html + '</p>';
+
+            // Clean up empty paragraphs
+            html = html.replace(/<p><\/p>/g, '');
+            html = html.replace(/<p><h([1-6])>/g, '<h$1>');
+            html = html.replace(/<\/h([1-6])><\/p>/g, '</h$1>');
+            html = html.replace(/<p><blockquote>/g, '<blockquote>');
+            html = html.replace(/<\/blockquote><\/p>/g, '</blockquote>');
+
+            return html;
         }
     </script>
 </body>

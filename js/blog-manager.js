@@ -132,7 +132,7 @@ class BlogManager {
         </header>
 
         <article class="post-content">
-            ${post.content.replace(/\n/g, '<br>')}
+            ${this.markdownToHtml(post.content)}
         </article>
     </main>
 
@@ -143,6 +143,40 @@ class BlogManager {
     </footer>
 </body>
 </html>`;
+    }
+
+    markdownToHtml(markdown) {
+        let html = markdown;
+
+        // Headers
+        html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+        html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+
+        // Bold and italic
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+        // Code
+        html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+        // Links
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+        // Blockquotes
+        html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+        // Line breaks
+        html = html.replace(/\n\n/g, '</p><p>');
+        html = '<p>' + html + '</p>';
+
+        // Clean up empty paragraphs
+        html = html.replace(/<p><\/p>/g, '');
+        html = html.replace(/<p><h([1-6])>/g, '<h$1>');
+        html = html.replace(/<\/h([1-6])><\/p>/g, '</h$1>');
+        html = html.replace(/<p><blockquote>/g, '<blockquote>');
+        html = html.replace(/<\/blockquote><\/p>/g, '</blockquote>');
+
+        return html;
     }
 }
 
